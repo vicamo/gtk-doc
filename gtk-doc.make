@@ -14,6 +14,38 @@ GTKDOC_LD = $(CC) $(GTKDOC_DEPS_LIBS) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDF
 GTKDOC_RUN =
 endif
 
+GTK_DOC_V_SETUP=$(GTK_DOC_V_SETUP_$(V))
+GTK_DOC_V_SETUP_=$(GTK_DOC_V_SETUP_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_SETUP_0=@echo "  DOC   Preparing build";
+
+GTK_DOC_V_SCAN=$(GTK_DOC_V_SCAN_$(V))
+GTK_DOC_V_SCAN_=$(GTK_DOC_V_SCAN_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_SCAN_0=@echo "  DOC   Scanning header files";
+
+GTK_DOC_V_INTROSPECT=$(GTK_DOC_V_INTROSPECT_$(V))
+GTK_DOC_V_INTROSPECT_=$(GTK_DOC_V_INTROSPECT_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_INTROSPECT_0=@echo "  DOC   Introspecting gobjects";
+
+GTK_DOC_V_TMPL=$(GTK_DOC_V_TMPL_$(V))
+GTK_DOC_V_TMPL_=$(GTK_DOC_V_TMPL_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_TMPL_0=@echo "  DOC   Rebuilding template files";
+
+GTK_DOC_V_XML=$(GTK_DOC_V_XML_$(V))
+GTK_DOC_V_XML_=$(GTK_DOC_V_XML_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_XML_0=@echo "  DOC   Building XML";
+
+GTK_DOC_V_HTML=$(GTK_DOC_V_HTML_$(V))
+GTK_DOC_V_HTML_=$(GTK_DOC_V_HTML_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_HTML_0=@echo "  DOC   Building HTML";
+
+GTK_DOC_V_XREF=$(GTK_DOC_V_XREF_$(V))
+GTK_DOC_V_XREF_=$(GTK_DOC_V_XREF_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_XREF_0=@echo "  DOC   Fixing cross-references";
+
+GTK_DOC_V_PDF=$(GTK_DOC_V_PDF_$(V))
+GTK_DOC_V_PDF_=$(GTK_DOC_V_PDF_$(AM_DEFAULT_VERBOSITY))
+GTK_DOC_V_PDF_0=@echo "  DOC   Building PDF";
+
 # We set GPATH here; this gives us semantics for GNU make
 # which are more like other make's VPATH, when it comes to
 # whether a source that is a target of one rule is then
@@ -80,10 +112,6 @@ $(REPORT_FILES): sgml-build.stamp
 
 #### setup ####
 
-GTK_DOC_V_SETUP=$(GTK_DOC_V_SETUP_$(V))
-GTK_DOC_V_SETUP_=$(GTK_DOC_V_SETUP_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_SETUP_0=@echo "  DOC   Preparing build";
-
 setup-build.stamp:
 	-$(GTK_DOC_V_SETUP)if test "$(abs_srcdir)" != "$(abs_builddir)" ; then \
 	    files=`echo $(SETUP_FILES) $(expand_content_files) $(DOC_MODULE).types`; \
@@ -102,14 +130,6 @@ setup-build.stamp:
 	$(AM_V_at)touch setup-build.stamp
 
 #### scan ####
-
-GTK_DOC_V_SCAN=$(GTK_DOC_V_SCAN_$(V))
-GTK_DOC_V_SCAN_=$(GTK_DOC_V_SCAN_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_SCAN_0=@echo "  DOC   Scanning header files";
-
-GTK_DOC_V_INTROSPECT=$(GTK_DOC_V_INTROSPECT_$(V))
-GTK_DOC_V_INTROSPECT_=$(GTK_DOC_V_INTROSPECT_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_INTROSPECT_0=@echo "  DOC   Introspecting gobjects";
 
 scan-build.stamp: setup-build.stamp $(HFILE_GLOB) $(CFILE_GLOB)
 	$(GTK_DOC_V_SCAN)_source_dir='' ; \
@@ -139,10 +159,6 @@ $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(DOC_MODULE)-sections.txt $(DOC_MODULE)
 
 #### templates ####
 
-GTK_DOC_V_TMPL=$(GTK_DOC_V_TMPL_$(V))
-GTK_DOC_V_TMPL_=$(GTK_DOC_V_TMPL_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_TMPL_0=@echo "  DOC   Rebuilding template files";
-
 tmpl-build.stamp: setup-build.stamp $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(DOC_MODULE)-sections.txt $(DOC_MODULE)-overrides.txt
 	$(GTK_DOC_V_TMPL)gtkdoc-mktmpl --module=$(DOC_MODULE) $(MKTMPL_OPTIONS)
 	$(AM_V_at)if test "$(abs_srcdir)" != "$(abs_builddir)" ; then \
@@ -160,10 +176,6 @@ $(srcdir)/tmpl/*.sgml:
 
 #### xml ####
 
-GTK_DOC_V_XML=$(GTK_DOC_V_XML_$(V))
-GTK_DOC_V_XML_=$(GTK_DOC_V_XML_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_XML_0=@echo "  DOC   Building XML";
-
 sgml-build.stamp: tmpl.stamp $(DOC_MODULE)-sections.txt $(srcdir)/tmpl/*.sgml $(expand_content_files)
 	-$(GTK_DOC_V_XML)chmod -R u+w $(srcdir) && _source_dir='' ; \
 	for i in $(DOC_SOURCE_DIR) ; do \
@@ -176,14 +188,6 @@ sgml.stamp: sgml-build.stamp
 	@true
 
 #### html ####
-
-GTK_DOC_V_HTML=$(GTK_DOC_V_HTML_$(V))
-GTK_DOC_V_HTML_=$(GTK_DOC_V_HTML_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_HTML_0=@echo "  DOC   Building HTML";
-
-GTK_DOC_V_XREF=$(GTK_DOC_V_XREF_$(V))
-GTK_DOC_V_XREF_=$(GTK_DOC_V_XREF_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_XREF_0=@echo "  DOC   Fixing cross-references";
 
 html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
 	$(GTK_DOC_V_HTML)rm -rf html && mkdir html && \
@@ -212,10 +216,6 @@ html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
 	$(AM_V_at)touch html-build.stamp
 
 #### pdf ####
-
-GTK_DOC_V_PDF=$(GTK_DOC_V_PDF_$(V))
-GTK_DOC_V_PDF_=$(GTK_DOC_V_PDF_$(AM_DEFAULT_VERBOSITY))
-GTK_DOC_V_PDF_0=@echo "  DOC   Building PDF";
 
 pdf-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
 	$(GTK_DOC_V_PDF)rm -f $(DOC_MODULE).pdf && \
