@@ -81,34 +81,31 @@ REPORT_FILES = \
 	$(DOC_MODULE)-undeclared.txt \
 	$(DOC_MODULE)-unused.txt
 
-gtkdoc-check.test: Makefile
-	$(AM_V_GEN)echo "#!/bin/sh -e" > $@; \
-		echo "$(GTKDOC_CHECK_PATH) || exit 1" >> $@; \
-		chmod +x $@
-
 CLEANFILES = $(SCANOBJ_FILES) $(REPORT_FILES) $(DOC_STAMPS) gtkdoc-check.test
 
+.PHONY: all-gtk-doc docs
+
 if GTK_DOC_BUILD_HTML
-HTML_BUILD_STAMP=html-build.stamp
-else
-HTML_BUILD_STAMP=
+all-gtk-doc: html-build.stamp
+docs: html-build.stamp
 endif
 if GTK_DOC_BUILD_PDF
-PDF_BUILD_STAMP=pdf-build.stamp
-else
-PDF_BUILD_STAMP=
+all-gtk-doc: pdf-build.stamp
+docs: pdf-build.stamp
 endif
-
-all-gtk-doc: $(HTML_BUILD_STAMP) $(PDF_BUILD_STAMP)
-.PHONY: all-gtk-doc
 
 if ENABLE_GTK_DOC
 all-local: all-gtk-doc
 endif
 
-docs: $(HTML_BUILD_STAMP) $(PDF_BUILD_STAMP)
+.PHONY : dist-hook-local
 
-$(REPORT_FILES): sgml-build.stamp
+#### check ####
+
+gtkdoc-check.test: Makefile
+	$(AM_V_GEN)echo "#!/bin/sh -e" > $@; \
+		echo "$(GTKDOC_CHECK_PATH) || exit 1" >> $@; \
+		chmod +x $@
 
 #### setup ####
 
@@ -186,6 +183,8 @@ sgml-build.stamp: tmpl.stamp $(DOC_MODULE)-sections.txt $(srcdir)/tmpl/*.sgml $(
 
 sgml.stamp: sgml-build.stamp
 	@true
+
+$(REPORT_FILES): sgml-build.stamp
 
 #### html ####
 
@@ -288,6 +287,17 @@ uninstall-local:
 	fi; \
 	rm -rf $${installdir}
 
+dist-hook: dist-check-gtkdoc all-gtk-doc dist-hook-local
+	@mkdir $(distdir)/tmpl
+	@mkdir $(distdir)/html
+	@-cp ./tmpl/*.sgml $(distdir)/tmpl
+	@cp ./html/* $(distdir)/html
+	@-cp ./$(DOC_MODULE).pdf $(distdir)/
+	@-cp ./$(DOC_MODULE).types $(distdir)/
+	@-cp ./$(DOC_MODULE)-sections.txt $(distdir)/
+	@cd $(distdir) && rm -f $(DISTCLEANFILES)
+	@$(GTKDOC_REBASE) --online --relative --html-dir=$(distdir)/html
+
 #
 # Require gtk-doc when making dist
 #
@@ -300,16 +310,3 @@ dist-check-gtkdoc:
 	@echo "*** please install gtk-doc and rerun 'configure'. ***"
 	@false
 endif
-
-dist-hook: dist-check-gtkdoc all-gtk-doc dist-hook-local
-	@mkdir $(distdir)/tmpl
-	@mkdir $(distdir)/html
-	@-cp ./tmpl/*.sgml $(distdir)/tmpl
-	@cp ./html/* $(distdir)/html
-	@-cp ./$(DOC_MODULE).pdf $(distdir)/
-	@-cp ./$(DOC_MODULE).types $(distdir)/
-	@-cp ./$(DOC_MODULE)-sections.txt $(distdir)/
-	@cd $(distdir) && rm -f $(DISTCLEANFILES)
-	@$(GTKDOC_REBASE) --online --relative --html-dir=$(distdir)/html
-
-.PHONY : dist-hook-local docs
