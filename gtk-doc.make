@@ -53,35 +53,55 @@ GTK_DOC_V_PDF_0=@echo "  DOC   Building PDF";
 #
 GPATH = $(srcdir)
 
-TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)
+# To keep compatible with existing usage, this file must
+# define EXTRA_DIST and CLEANFILES when included.
+EXTRA_DIST =
+CLEANFILES =
 
-SETUP_FILES = \
-	$(content_files)		\
-	$(DOC_MAIN_SGML_FILE)		\
-	$(DOC_MODULE)-sections.txt	\
-	$(DOC_MODULE)-overrides.txt
+# $(1): normalized module prefix, e.g. "docs_GtkFoo_" or ""
+define def-gtk-doc-module-vars
+$(eval $(1)TARGET_DIR = $$(HTML_DIR)/$$($(1)DOC_MODULE))
 
-EXTRA_DIST = 				\
-	$(HTML_IMAGES)			\
-	$(SETUP_FILES)
+$(eval $(1)SETUP_FILES = \
+	$$($(1)content_files) \
+	$$($(1)DOC_MAIN_SGML_FILE) \
+	$$($(1)DOC_MODULE)-sections.txt \
+	$$($(1)DOC_MODULE)-overrides.txt)
 
-DOC_STAMPS=setup-build.stamp scan-build.stamp tmpl-build.stamp sgml-build.stamp \
-	html-build.stamp pdf-build.stamp \
-	tmpl.stamp sgml.stamp html.stamp pdf.stamp
+$(eval EXTRA_DIST += \
+	$$($(1)HTML_IMAGES) \
+	$$($(1)SETUP_FILES))
 
-SCANOBJ_FILES = 		 \
-	$(DOC_MODULE).args 	 \
-	$(DOC_MODULE).hierarchy  \
-	$(DOC_MODULE).interfaces \
-	$(DOC_MODULE).prerequisites \
-	$(DOC_MODULE).signals
+$(eval $(1)DOC_STAMPS = \
+	html-build.stamp \
+	html.stamp \
+	pdf-build.stamp \
+	pdf.stamp \
+	scan-build.stamp \
+	setup-build.stamp \
+	sgml-build.stamp \
+	sgml.stamp \
+	tmpl-build.stamp \
+	tmpl.stamp)
 
-REPORT_FILES = \
-	$(DOC_MODULE)-undocumented.txt \
-	$(DOC_MODULE)-undeclared.txt \
-	$(DOC_MODULE)-unused.txt
+$(eval $(1)SCANOBJ_FILES = \
+	$$($(1)DOC_MODULE).args \
+	$$($(1)DOC_MODULE).hierarchy \
+	$$($(1)DOC_MODULE).interfaces \
+	$$($(1)DOC_MODULE).prerequisites \
+	$$($(1)DOC_MODULE).signals)
 
-CLEANFILES = $(SCANOBJ_FILES) $(REPORT_FILES) $(DOC_STAMPS) gtkdoc-check.test
+$(eval $(1)REPORT_FILES = \
+	$$($(1)DOC_MODULE)-undocumented.txt \
+	$$($(1)DOC_MODULE)-undeclared.txt \
+	$$($(1)DOC_MODULE)-unused.txt)
+
+$(eval CLEANFILES += \
+	$$($(1)SCANOBJ_FILES) \
+	$$($(1)REPORT_FILES) \
+	$$($(1)DOC_STAMPS) \
+	gtkdoc-check.test)
+endef # End of def-gtk-doc-module-vars
 
 .PHONY: all-gtk-doc docs
 
@@ -100,203 +120,244 @@ endif
 
 .PHONY : dist-hook-local
 
+# $(1): normalized module prefix, e.g. "docs_GtkFoo_" or ""
+define def-gtk-doc-module-rules
+
 #### check ####
 
 gtkdoc-check.test: Makefile
-	$(AM_V_GEN)echo "#!/bin/sh -e" > $@; \
-		echo "$(GTKDOC_CHECK_PATH) || exit 1" >> $@; \
-		chmod +x $@
+	$$(AM_V_GEN)echo "#!/bin/sh -e" > $$@; \
+		echo "$$(GTKDOC_CHECK_PATH) || exit 1" >> $$@; \
+		chmod +x $$@
 
 #### setup ####
 
 setup-build.stamp:
-	-$(GTK_DOC_V_SETUP)if test "$(abs_srcdir)" != "$(abs_builddir)" ; then \
-	    files=`echo $(SETUP_FILES) $(expand_content_files) $(DOC_MODULE).types`; \
-	    if test "x$$files" != "x" ; then \
-	        for file in $$files ; do \
-	            destdir=`dirname $(abs_builddir)/$$file` ;\
-	            test -d "$$destdir" || mkdir -p "$$destdir"; \
-	            test -f $(abs_srcdir)/$$file && \
-	                cp -pf $(abs_srcdir)/$$file $(abs_builddir)/$$file || true; \
+	-$$(GTK_DOC_V_SETUP)if test "$$(abs_srcdir)" != "$$(abs_builddir)" ; then \
+	    files=`echo $$($(1)SETUP_FILES) $$($(1)expand_content_files) $$($(1)DOC_MODULE).types`; \
+	    if test "x$$$$files" != "x" ; then \
+	        for file in $$$$files ; do \
+	            destdir=`dirname $$(abs_builddir)/$$$$file` ;\
+	            test -d "$$$$destdir" || mkdir -p "$$$$destdir"; \
+	            test -f $$(abs_srcdir)/$$$$file && \
+	                cp -pf $$(abs_srcdir)/$$$$file $$(abs_builddir)/$$$$file || true; \
 	        done; \
 	    fi; \
-	    test -d $(abs_srcdir)/tmpl && \
-	        { cp -pR $(abs_srcdir)/tmpl $(abs_builddir)/; \
-	        chmod -R u+w $(abs_builddir)/tmpl; } \
+	    test -d $$(abs_srcdir)/tmpl && \
+	        { cp -pR $$(abs_srcdir)/tmpl $$(abs_builddir)/; \
+	        chmod -R u+w $$(abs_builddir)/tmpl; } \
 	fi
-	$(AM_V_at)touch setup-build.stamp
+	$$(AM_V_at)touch $$@
 
 #### scan ####
 
-scan-build.stamp: setup-build.stamp $(HFILE_GLOB) $(CFILE_GLOB)
-	$(GTK_DOC_V_SCAN)_source_dir='' ; \
-	for i in $(DOC_SOURCE_DIR) ; do \
-	    _source_dir="$${_source_dir} --source-dir=$$i" ; \
+scan-build.stamp: setup-build.stamp $$($(1)HFILE_GLOB) $$($(1)CFILE_GLOB)
+	$$(GTK_DOC_V_SCAN)_source_dir='' ; \
+	for i in $$($(1)DOC_SOURCE_DIR) ; do \
+	    _source_dir="$$$${_source_dir} --source-dir=$$$$i" ; \
 	done ; \
-	gtkdoc-scan --module=$(DOC_MODULE) --ignore-headers="$(IGNORE_HFILES)" $${_source_dir} $(SCAN_OPTIONS) $(EXTRA_HFILES)
-	$(GTK_DOC_V_INTROSPECT)if grep -l '^..*$$' $(DOC_MODULE).types > /dev/null 2>&1 ; then \
+	gtkdoc-scan --module=$$($(1)DOC_MODULE) --ignore-headers="$$($(1)IGNORE_HFILES)" $$$${_source_dir} $$($(1)SCAN_OPTIONS) $$($(1)EXTRA_HFILES)
+	$$(GTK_DOC_V_INTROSPECT)if grep -l '^..*$$$$' $$($(1)DOC_MODULE).types > /dev/null 2>&1 ; then \
 	    scanobj_options=""; \
 	    gtkdoc-scangobj 2>&1 --help | grep  >/dev/null "\-\-verbose"; \
-	    if test "$$?" = "0"; then \
-	        if test "x$(V)" = "x1"; then \
+	    if test "$$$$?" = "0"; then \
+	        if test "x$$(V)" = "x1"; then \
 	            scanobj_options="--verbose"; \
 	        fi; \
 	    fi; \
-	    CC="$(GTKDOC_CC)" LD="$(GTKDOC_LD)" RUN="$(GTKDOC_RUN)" CFLAGS="$(GTKDOC_CFLAGS) $(CFLAGS)" LDFLAGS="$(GTKDOC_LIBS) $(LDFLAGS)" \
-	    gtkdoc-scangobj $(SCANGOBJ_OPTIONS) $$scanobj_options --module=$(DOC_MODULE); \
+	    CC="$$(GTKDOC_CC)" LD="$$(GTKDOC_LD)" RUN="$$(GTKDOC_RUN)" CFLAGS="$$($(1)GTKDOC_CFLAGS) $$(CFLAGS)" LDFLAGS="$$($(1)GTKDOC_LIBS) $$(LDFLAGS)" \
+	    gtkdoc-scangobj $$($(1)SCANGOBJ_OPTIONS) $$$$scanobj_options --module=$$($(1)DOC_MODULE); \
 	else \
-	    for i in $(SCANOBJ_FILES) ; do \
-	        test -f $$i || touch $$i ; \
+	    for i in $$($(1)SCANOBJ_FILES) ; do \
+	        test -f $$$$i || touch $$$$i ; \
 	    done \
 	fi
-	$(AM_V_at)touch scan-build.stamp
+	$$(AM_V_at)touch $$@
 
-$(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(DOC_MODULE)-sections.txt $(DOC_MODULE)-overrides.txt: scan-build.stamp
+$$($(1)DOC_MODULE)-decl.txt $$($(1)SCANOBJ_FILES) $$($(1)DOC_MODULE)-sections.txt $$($(1)DOC_MODULE)-overrides.txt: scan-build.stamp
 	@true
 
 #### templates ####
 
-tmpl-build.stamp: setup-build.stamp $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(DOC_MODULE)-sections.txt $(DOC_MODULE)-overrides.txt
-	$(GTK_DOC_V_TMPL)gtkdoc-mktmpl --module=$(DOC_MODULE) $(MKTMPL_OPTIONS)
-	$(AM_V_at)if test "$(abs_srcdir)" != "$(abs_builddir)" ; then \
-	  if test -w $(abs_srcdir) ; then \
-	    cp -pR $(abs_builddir)/tmpl $(abs_srcdir)/; \
+tmpl-build.stamp: setup-build.stamp $$($(1)DOC_MODULE)-decl.txt $$($(1)SCANOBJ_FILES) $$($(1)DOC_MODULE)-sections.txt $$($(1)DOC_MODULE)-overrides.txt
+	$$(GTK_DOC_V_TMPL)gtkdoc-mktmpl --module=$$($(1)DOC_MODULE) $$($(1)MKTMPL_OPTIONS)
+	$$(AM_V_at)if test "$$(abs_srcdir)" != "$$(abs_builddir)" ; then \
+	  if test -w $$(abs_srcdir) ; then \
+	    cp -pR $$(abs_builddir)/tmpl $$(abs_srcdir)/; \
 	  fi \
 	fi
-	$(AM_V_at)touch tmpl-build.stamp
+	$$(AM_V_at)touch $$@
 
 tmpl.stamp: tmpl-build.stamp
 	@true
 
-$(srcdir)/tmpl/*.sgml:
+$$(srcdir)/tmpl/*.sgml:
 	@true
 
 #### xml ####
 
-sgml-build.stamp: tmpl.stamp $(DOC_MODULE)-sections.txt $(srcdir)/tmpl/*.sgml $(expand_content_files)
-	-$(GTK_DOC_V_XML)chmod -R u+w $(srcdir) && _source_dir='' ; \
-	for i in $(DOC_SOURCE_DIR) ; do \
-	    _source_dir="$${_source_dir} --source-dir=$$i" ; \
+sgml-build.stamp: tmpl.stamp $$($(1)DOC_MODULE)-sections.txt $$(srcdir)/tmpl/*.sgml $$($(1)expand_content_files)
+	-$$(GTK_DOC_V_XML)chmod -R u+w $$(srcdir) && _source_dir='' ; \
+	for i in $$($(1)DOC_SOURCE_DIR) ; do \
+	    _source_dir="$$$${_source_dir} --source-dir=$$$$i" ; \
 	done ; \
-	gtkdoc-mkdb --module=$(DOC_MODULE) --output-format=xml --expand-content-files="$(expand_content_files)" --main-sgml-file=$(DOC_MAIN_SGML_FILE) $${_source_dir} $(MKDB_OPTIONS)
-	$(AM_V_at)touch sgml-build.stamp
+	gtkdoc-mkdb --module=$$($(1)DOC_MODULE) --output-format=xml --expand-content-files="$$($(1)expand_content_files)" --main-sgml-file=$$($(1)DOC_MAIN_SGML_FILE) $$$${_source_dir} $$($(1)MKDB_OPTIONS)
+	$$(AM_V_at)touch $$@
 
 sgml.stamp: sgml-build.stamp
 	@true
 
-$(REPORT_FILES): sgml-build.stamp
+$$($(1)REPORT_FILES): sgml-build.stamp
 
 #### html ####
 
-html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
-	$(GTK_DOC_V_HTML)rm -rf html && mkdir html && \
+html-build.stamp: sgml.stamp $$($(1)DOC_MAIN_SGML_FILE) $$($(1)content_files)
+	$$(GTK_DOC_V_HTML)rm -rf html && mkdir html && \
 	mkhtml_options=""; \
 	gtkdoc-mkhtml 2>&1 --help | grep  >/dev/null "\-\-verbose"; \
-	if test "$$?" = "0"; then \
-	  if test "x$(V)" = "x1"; then \
-	    mkhtml_options="$$mkhtml_options --verbose"; \
+	if test "$$$$?" = "0"; then \
+	  if test "x$$(V)" = "x1"; then \
+	    mkhtml_options="$$$$mkhtml_options --verbose"; \
 	  fi; \
 	fi; \
 	gtkdoc-mkhtml 2>&1 --help | grep  >/dev/null "\-\-path"; \
-	if test "$$?" = "0"; then \
-	  mkhtml_options="$$mkhtml_options --path=\"$(abs_srcdir)\""; \
+	if test "$$$$?" = "0"; then \
+	  mkhtml_options="$$$$mkhtml_options --path=\"$$(abs_srcdir)\""; \
 	fi; \
-	cd html && gtkdoc-mkhtml $$mkhtml_options $(MKHTML_OPTIONS) $(DOC_MODULE) ../$(DOC_MAIN_SGML_FILE)
-	-@test "x$(HTML_IMAGES)" = "x" || \
-	for file in $(HTML_IMAGES) ; do \
-	  if test -f $(abs_srcdir)/$$file ; then \
-	    cp $(abs_srcdir)/$$file $(abs_builddir)/html; \
+	cd html && gtkdoc-mkhtml $$$$mkhtml_options $$($(1)MKHTML_OPTIONS) $$($(1)DOC_MODULE) ../$$($(1)DOC_MAIN_SGML_FILE)
+	-@test "x$$($(1)HTML_IMAGES)" = "x" || \
+	for file in $$($(1)HTML_IMAGES) ; do \
+	  if test -f $$(abs_srcdir)/$$$$file ; then \
+	    cp $$(abs_srcdir)/$$$$file $$(abs_builddir)/html; \
 	  fi; \
-	  if test -f $(abs_builddir)/$$file ; then \
-	    cp $(abs_builddir)/$$file $(abs_builddir)/html; \
+	  if test -f $$(abs_builddir)/$$$$file ; then \
+	    cp $$(abs_builddir)/$$$$file $$(abs_builddir)/html; \
 	  fi; \
 	done;
-	$(GTK_DOC_V_XREF)gtkdoc-fixxref --module=$(DOC_MODULE) --module-dir=html --html-dir=$(HTML_DIR) $(FIXXREF_OPTIONS)
-	$(AM_V_at)touch html-build.stamp
+	$$(GTK_DOC_V_XREF)gtkdoc-fixxref --module=$$($(1)DOC_MODULE) --module-dir=html --html-dir=$$($(1)HTML_DIR) $$($(1)FIXXREF_OPTIONS)
+	$$(AM_V_at)touch $$@
 
 #### pdf ####
 
-pdf-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
-	$(GTK_DOC_V_PDF)rm -f $(DOC_MODULE).pdf && \
+pdf-build.stamp: sgml.stamp $$($(1)DOC_MAIN_SGML_FILE) $$($(1)content_files)
+	$$(GTK_DOC_V_PDF)rm -f $$($(1)DOC_MODULE).pdf && \
 	mkpdf_options=""; \
 	gtkdoc-mkpdf 2>&1 --help | grep  >/dev/null "\-\-verbose"; \
-	if test "$$?" = "0"; then \
-	  if test "x$(V)" = "x1"; then \
-	    mkpdf_options="$$mkpdf_options --verbose"; \
+	if test "$$$$?" = "0"; then \
+	  if test "x$$(V)" = "x1"; then \
+	    mkpdf_options="$$$$mkpdf_options --verbose"; \
 	  fi; \
 	fi; \
-	if test "x$(HTML_IMAGES)" != "x"; then \
-	  for img in $(HTML_IMAGES); do \
-	    part=`dirname $$img`; \
-	    echo $$mkpdf_options | grep >/dev/null "\-\-imgdir=$$part "; \
-	    if test $$? != 0; then \
-	      mkpdf_options="$$mkpdf_options --imgdir=$$part"; \
+	if test "x$$($(1)HTML_IMAGES)" != "x"; then \
+	  for img in $$($(1)HTML_IMAGES); do \
+	    part=`dirname $$$$img`; \
+	    echo $$$$mkpdf_options | grep >/dev/null "\-\-imgdir=$$$$part "; \
+	    if test $$$$? != 0; then \
+	      mkpdf_options="$$$$mkpdf_options --imgdir=$$$$part"; \
 	    fi; \
 	  done; \
 	fi; \
-	gtkdoc-mkpdf --path="$(abs_srcdir)" $$mkpdf_options $(DOC_MODULE) $(DOC_MAIN_SGML_FILE) $(MKPDF_OPTIONS)
-	$(AM_V_at)touch pdf-build.stamp
+	gtkdoc-mkpdf --path="$$(abs_srcdir)" $$$$mkpdf_options $$($(1)DOC_MODULE) $$($(1)DOC_MAIN_SGML_FILE) $$($(1)MKPDF_OPTIONS)
+	$$(AM_V_at)touch $$@
 
 ##############
 
-clean-local:
+$(1)$$($(1)DOC_MODULE)-clean-local:
 	@rm -f *~ *.bak
 	@rm -rf .libs
-	@if echo $(SCAN_OPTIONS) | grep -q "\-\-rebuild-types" ; then \
-	  rm -f $(DOC_MODULE).types; \
+	@if echo $$($(1)SCAN_OPTIONS) | grep -q "\-\-rebuild-types" ; then \
+	  rm -f $$($(1)DOC_MODULE).types; \
 	fi
 
-distclean-local:
-	@rm -rf xml html $(REPORT_FILES) $(DOC_MODULE).pdf \
-	    $(DOC_MODULE)-decl-list.txt $(DOC_MODULE)-decl.txt
-	@if test "$(abs_srcdir)" != "$(abs_builddir)" ; then \
-	    rm -f $(SETUP_FILES) $(expand_content_files) $(DOC_MODULE).types; \
+.PHONY: $(1)$$($(1)DOC_MODULE)-clean-local
+clean-local: $(1)$$($(1)DOC_MODULE)-clean-local
+
+$(1)$$($(1)DOC_MODULE)-distclean-local:
+	@rm -rf xml html $$($(1)REPORT_FILES) $$($(1)DOC_MODULE).pdf \
+	    $$($(1)DOC_MODULE)-decl-list.txt $$($(1)DOC_MODULE)-decl.txt
+	@if test "$$(abs_srcdir)" != "$$(abs_builddir)" ; then \
+	    rm -f $$($(1)SETUP_FILES) $$($(1)expand_content_files) $$($(1)DOC_MODULE).types; \
 	    rm -rf tmpl; \
 	fi
 
-maintainer-clean-local:
+.PHONY: $(1)$$($(1)DOC_MODULE)-distclean-local
+distclean-local: $(1)$$($(1)DOC_MODULE)-distclean-local
+
+$(1)$$($(1)DOC_MODULE)-maintainer-clean-local:
 	@rm -rf xml html
 
-install-data-local:
-	@installfiles=`echo $(builddir)/html/*`; \
-	if test "$$installfiles" = '$(builddir)/html/*'; \
+.PHONY: $(1)$$($(1)DOC_MODULE)-maintainer-clean-local
+maintainer-clean-local: $(1)$$($(1)DOC_MODULE)-maintainer-clean-local
+
+$(1)$$($(1)DOC_MODULE)-install-data-local:
+	@installfiles=`echo $$(builddir)/html/*`; \
+	if test "$$$$installfiles" = '$$(builddir)/html/*'; \
 	then echo 1>&2 'Nothing to install' ; \
 	else \
-	  if test -n "$(DOC_MODULE_VERSION)"; then \
-	    installdir="$(DESTDIR)$(TARGET_DIR)-$(DOC_MODULE_VERSION)"; \
+	  if test -n "$$($(1)DOC_MODULE_VERSION)"; then \
+	    installdir="$$(DESTDIR)$$($(1)TARGET_DIR)-$$($(1)DOC_MODULE_VERSION)"; \
 	  else \
-	    installdir="$(DESTDIR)$(TARGET_DIR)"; \
+	    installdir="$$(DESTDIR)$$($(1)TARGET_DIR)"; \
 	  fi; \
-	  $(mkinstalldirs) $${installdir} ; \
-	  for i in $$installfiles; do \
-	    echo ' $(INSTALL_DATA) '$$i ; \
-	    $(INSTALL_DATA) $$i $${installdir}; \
+	  $$(mkinstalldirs) $$$${installdir} ; \
+	  for i in $$$$installfiles; do \
+	    echo ' $$(INSTALL_DATA) '$$$$i ; \
+	    $$(INSTALL_DATA) $$$$i $$$${installdir}; \
 	  done; \
-	  if test -n "$(DOC_MODULE_VERSION)"; then \
-	    mv -f $${installdir}/$(DOC_MODULE).devhelp2 \
-	      $${installdir}/$(DOC_MODULE)-$(DOC_MODULE_VERSION).devhelp2; \
+	  if test -n "$$($(1)DOC_MODULE_VERSION)"; then \
+	    mv -f $$$${installdir}/$$($(1)DOC_MODULE).devhelp2 \
+	      $$$${installdir}/$$($(1)DOC_MODULE)-$$($(1)DOC_MODULE_VERSION).devhelp2; \
 	  fi; \
-	  $(GTKDOC_REBASE) --relative --dest-dir=$(DESTDIR) --html-dir=$${installdir}; \
+	  $$(GTKDOC_REBASE) --relative --dest-dir=$$(DESTDIR) --html-dir=$$$${installdir}; \
 	fi
 
-uninstall-local:
-	@if test -n "$(DOC_MODULE_VERSION)"; then \
-	  installdir="$(DESTDIR)$(TARGET_DIR)-$(DOC_MODULE_VERSION)"; \
-	else \
-	  installdir="$(DESTDIR)$(TARGET_DIR)"; \
-	fi; \
-	rm -rf $${installdir}
+.PHONY: $(1)$$($(1)DOC_MODULE)-install-data-local
+install-data-local: $(1)$$($(1)DOC_MODULE)-install-data-local
 
-dist-hook: dist-check-gtkdoc all-gtk-doc dist-hook-local
-	@mkdir $(distdir)/tmpl
-	@mkdir $(distdir)/html
-	@-cp ./tmpl/*.sgml $(distdir)/tmpl
-	@cp ./html/* $(distdir)/html
-	@-cp ./$(DOC_MODULE).pdf $(distdir)/
-	@-cp ./$(DOC_MODULE).types $(distdir)/
-	@-cp ./$(DOC_MODULE)-sections.txt $(distdir)/
-	@cd $(distdir) && rm -f $(DISTCLEANFILES)
-	@$(GTKDOC_REBASE) --online --relative --html-dir=$(distdir)/html
+$(1)$$($(1)DOC_MODULE)-uninstall-local:
+	@if test -n "$$($(1)DOC_MODULE_VERSION)"; then \
+	  installdir="$$(DESTDIR)$$($(1)TARGET_DIR)-$$($(1)DOC_MODULE_VERSION)"; \
+	else \
+	  installdir="$$(DESTDIR)$$($(1)TARGET_DIR)"; \
+	fi; \
+	rm -rf $$$${installdir}
+
+.PHONY: $(1)$$($(1)DOC_MODULE)-uninstall-local
+uninstall-local: $(1)$$($(1)DOC_MODULE)-uninstall-local
+
+$(1)$$($(1)DOC_MODULE)-dist-hook: dist-check-gtkdoc all-gtk-doc dist-hook-local
+	@mkdir $$(distdir)/tmpl
+	@mkdir $$(distdir)/html
+	@-cp ./tmpl/*.sgml $$(distdir)/tmpl
+	@cp ./html/* $$(distdir)/html
+	@-cp ./$$($(1)DOC_MODULE).pdf $$(distdir)/
+	@-cp ./$$($(1)DOC_MODULE).types $$(distdir)/
+	@-cp ./$$($(1)DOC_MODULE)-sections.txt $$(distdir)/
+	@cd $$(distdir) && rm -f $$(DISTCLEANFILES)
+	@$$(GTKDOC_REBASE) --online --relative --html-dir=$$(distdir)/html
+
+.PHONY: $(1)$$($(1)DOC_MODULE)-dist-hook
+dist-hook: $(1)$$($(1)DOC_MODULE)-dist-hook
+
+endef # End of def-gtk-doc-module-rules
+
+# $(1): gtk-doc full module name in Makefile.am, e.g. "docs/GtkFoo" or "GtkFoo"
+# output: "docs_GtkFoo_" or "".
+define am-gtk-doc-full-module-to-prefix
+$(if $(filter-out ./,$(dir $(1))),$(shell echo "$(1)" | tr -C "[:alpha:][:digit:]" _))
+endef
+
+# $(1): normalized module prefix, e.g. "docs_GtkFoo_" or ""
+define def-gtk-doc-module
+$(call def-gtk-doc-module-vars,$(_prefix)) \
+$(eval $(call def-gtk-doc-module-rules,$(_prefix)))
+endef
+
+$(strip $(foreach m,$(DOC_MODULE), \
+  $(eval _prefix := $(call am-gtk-doc-full-module-to-prefix,$(m))) \
+  $(if $(_prefix),$(eval $(_prefix)DOC_MODULE = $(notdir $(m)))) \
+  $(call def-gtk-doc-module,$(_prefix)) \
+))
 
 #
 # Require gtk-doc when making dist
